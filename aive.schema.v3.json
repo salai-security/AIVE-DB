@@ -1,0 +1,555 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/salai-security/AIVE-DB/main/aive.schema.v3.json",
+  "title": "AIVE Finding Record",
+  "description": "A de-identified, reusable AI-native vulnerability or failure pattern. One record describes one pattern; incidents are referenced, not stored. Designed to be consumed by scanners, runtime enforcement points, SIEMs, and incident-learning exchanges such as SAFE.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aive_id",
+    "title",
+    "summary",
+    "description",
+    "vulnerability_type",
+    "attack_vector",
+    "control_layer",
+    "affected_components",
+    "impact",
+    "mitigation",
+    "taxonomy_mapping",
+    "lifecycle",
+    "metadata"
+  ],
+  "properties": {
+    "aive_id": {
+      "type": "string",
+      "pattern": "^AIVE-[0-9]{4}-[0-9]{5}$",
+      "description": "Stable identifier: AIVE-<year assigned>-<sequence>. Never reused; superseded records keep their ID."
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "One or two sentences suitable for a feed or alert."
+    },
+    "description": {
+      "type": "string",
+      "description": "Full pattern description. De-identified: no customer names, no incident-specific data."
+    },
+
+    "vulnerability_type": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "prompt_injection_direct",
+          "prompt_injection_indirect",
+          "jailbreak",
+          "system_prompt_leakage",
+          "sensitive_data_disclosure",
+          "model_inversion",
+          "membership_inference",
+          "model_extraction",
+          "training_data_poisoning",
+          "model_supply_chain",
+          "tool_abuse",
+          "excessive_agency",
+          "privilege_escalation",
+          "delegation_abuse",
+          "unsafe_output_handling",
+          "output_hijacking",
+          "sandbox_escape",
+          "scope_violation",
+          "resource_exhaustion",
+          "memory_poisoning",
+          "other"
+        ]
+      }
+    },
+
+    "attack_vector": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "user_prompt",
+          "retrieved_content",
+          "tool_output",
+          "inter_agent_message",
+          "file_upload",
+          "web_content",
+          "email",
+          "code_repository",
+          "model_weights",
+          "training_data",
+          "fine_tuning_api",
+          "plugin_or_skill",
+          "mcp_server",
+          "configuration",
+          "other"
+        ]
+      }
+    },
+
+    "control_layer": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Which control layer(s) failed or are implicated. Aligned to the eight review layers in the SAFE RFC so findings aggregate by layer.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "model",
+          "instructions",
+          "safeguards",
+          "tools",
+          "environment",
+          "monitoring",
+          "human_operations",
+          "supply_chain"
+        ]
+      }
+    },
+
+    "affected_components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_class"],
+      "properties": {
+        "component_class": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "model",
+              "inference_api",
+              "agent_harness",
+              "orchestration_framework",
+              "tool",
+              "mcp_server",
+              "plugin_or_skill",
+              "identity_provider",
+              "policy_engine",
+              "gateway_or_proxy",
+              "runtime_or_sandbox",
+              "vector_store",
+              "training_pipeline",
+              "application"
+            ]
+          }
+        },
+        "model_type": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Free text, e.g. 'instruction-tuned LLM', 'multimodal', 'code model'."
+        },
+        "deployment_context": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "hosted_api",
+              "self_hosted",
+              "on_device",
+              "browser_extension",
+              "ide_assistant",
+              "autonomous_agent",
+              "multi_agent",
+              "rag_application",
+              "chatbot",
+              "coding_agent",
+              "other"
+            ]
+          }
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "vendor", "status"],
+            "properties": {
+              "name": { "type": "string" },
+              "vendor": { "type": "string" },
+              "version_ranges": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Semver-style ranges where applicable, e.g. '<2.4.1'. Omit for hosted models without public versions."
+              },
+              "status": {
+                "type": "string",
+                "enum": ["affected", "possibly_affected", "unaffected", "patched", "unknown"]
+              },
+              "cpe": {
+                "type": "string",
+                "description": "CPE 2.3 string if one exists, for CVE/NVD interoperability."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "agent_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Present when the pattern involves an agent taking actions. Captures what the agent could do, not what any specific incident did.",
+      "properties": {
+        "tools_involved": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tool or capability classes, e.g. 'shell', 'http_fetch', 'email_send', 'file_write', 'code_execute'."
+        },
+        "permissions_required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permissions the agent must hold for the pattern to succeed."
+        },
+        "delegation_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of delegation hops between the principal and the acting agent. 0 = the principal's own session."
+        },
+        "identity_model": {
+          "type": "string",
+          "enum": ["shared_credential", "service_account", "per_agent_identity", "delegated_user_identity", "unknown"]
+        },
+        "human_in_loop": {
+          "type": "string",
+          "enum": ["none", "notification_only", "approval_required", "unknown"],
+          "description": "Level of human oversight the pattern bypasses or exploits."
+        },
+        "boundary_crossed": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["sandbox", "network", "identity", "policy", "tool_scope", "data", "none"]
+          },
+          "description": "Boundaries the pattern crosses, using the SAFE Reporting Compact's boundary categories."
+        }
+      }
+    },
+
+    "impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["consequences"],
+      "properties": {
+        "consequences": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "confidentiality",
+              "integrity",
+              "availability",
+              "unauthorized_action",
+              "financial",
+              "safety",
+              "privacy",
+              "reputation",
+              "compliance"
+            ]
+          }
+        },
+        "severity": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Severity is optional until a published scoring method exists. Use CVSS where a CVE exists; 'qualitative' is the author's judgement.",
+          "properties": {
+            "qualitative": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "cvss_v4_vector": { "type": "string" },
+            "cvss_v4_score": { "type": "number", "minimum": 0, "maximum": 10 },
+            "rationale": { "type": "string" }
+          }
+        },
+        "observed_in_the_wild": {
+          "type": "boolean",
+          "description": "True if at least one referenced incident or public report confirms real-world use."
+        },
+        "can_autonomously_propagate": { "type": "boolean" }
+      }
+    },
+
+    "exploitability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exploit_status": {
+          "type": "string",
+          "enum": ["theoretical", "proof_of_concept", "observed", "weaponized", "unknown"]
+        },
+        "exploit_complexity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "required_privileges": {
+          "type": "string",
+          "enum": ["none", "user", "operator", "admin", "fine_tuning_access", "supply_chain_access"]
+        },
+        "user_interaction": { "type": "string", "enum": ["none", "required"] },
+        "automation_possible": { "type": "boolean" },
+        "reproduction": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Reproduction guidance. Do not include working payloads for weaponized patterns; reference a CVD-governed location instead.",
+          "properties": {
+            "steps": { "type": "array", "items": { "type": "string" } },
+            "reference_url": { "type": "string", "format": "uri" },
+            "disclosure_status": {
+              "type": "string",
+              "enum": ["public", "coordinated_pending", "restricted"]
+            }
+          }
+        }
+      }
+    },
+
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Machine-usable detection content keyed to this finding. Mirrors the 'reusable tests, detection rules' output SAFE intends to publish.",
+      "properties": {
+        "indicators": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Behavioral indicators, not raw payloads: e.g. 'tool call to external host not in allowlist following retrieval of untrusted content'."
+        },
+        "log_sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "prompt_log",
+              "model_response_log",
+              "tool_call_log",
+              "agent_trace",
+              "identity_provider",
+              "policy_decision_log",
+              "network_egress",
+              "file_system",
+              "approval_events",
+              "sandbox_runtime",
+              "other"
+            ]
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["format", "content"],
+            "properties": {
+              "format": {
+                "type": "string",
+                "enum": ["sigma", "kql", "spl", "sql", "yara", "regex", "cedar", "rego", "other"]
+              },
+              "content": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "test_references": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "description": "Links to reproducible tests (e.g. garak probes, PyRIT scenarios) that exercise this pattern."
+        }
+      }
+    },
+
+    "mitigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_control"],
+      "description": "Structured to match the recommendation fields in the SAFE RFC's 'From Lessons to Controls' section.",
+      "properties": {
+        "required_outcome": {
+          "type": "string",
+          "description": "The defensive outcome, independent of implementation."
+        },
+        "minimum_control": {
+          "type": "string",
+          "description": "The least a deployer must implement to close the pattern."
+        },
+        "acceptable_alternatives": { "type": "array", "items": { "type": "string" } },
+        "verification_method": {
+          "type": "string",
+          "description": "How to prove the control is effective. Should be reproducible."
+        },
+        "remediation_complexity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "temporary_workaround": { "type": "string" },
+        "patch_references": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+
+    "taxonomy_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cve": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$" }
+        },
+        "cwe": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^CWE-[0-9]+$" }
+        },
+        "mitre_atlas": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^AML\\.(T|TA|M|CS)[0-9]{4}(\\.[0-9]{3})?$" },
+          "description": "ATLAS technique, tactic, mitigation or case-study IDs, e.g. AML.T0051.001."
+        },
+        "owasp_llm_top10": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^LLM[0-9]{2}(:[0-9]{4})?$" },
+          "description": "e.g. LLM01:2025"
+        },
+        "owasp_agentic": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "OWASP Agentic Security Initiative threat IDs where applicable."
+        },
+        "nist_ai_rmf": { "type": "array", "items": { "type": "string" } },
+        "avid": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "AI Vulnerability Database IDs for cross-reference."
+        }
+      }
+    },
+
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "type"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "type": {
+            "type": "string",
+            "enum": ["advisory", "paper", "blog", "incident_report", "exploit", "patch", "discussion", "other"]
+          },
+          "title": { "type": "string" },
+          "date": { "type": "string", "format": "date" }
+        }
+      }
+    },
+
+    "related_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["aive_id", "relationship"],
+        "properties": {
+          "aive_id": { "type": "string", "pattern": "^AIVE-[0-9]{4}-[0-9]{5}$" },
+          "relationship": {
+            "type": "string",
+            "enum": ["variant_of", "precondition_for", "chained_with", "supersedes", "superseded_by", "duplicate_of"]
+          }
+        }
+      }
+    },
+
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reported_by": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "affiliation": { "type": "string" },
+              "contact": { "type": "string" }
+            }
+          }
+        },
+        "source_incidents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Opaque incident references (e.g. a SAFE report ID). Never incident content."
+        }
+      }
+    },
+
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_updated"],
+      "allOf": [{
+        "if": {
+          "properties": {"status": {"enum": ["published", "updated", "disputed", "superseded", "withdrawn"]}},
+          "required": ["status"]
+        },
+        "then": {"required": ["published_date"]}
+      }],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published", "updated", "disputed", "superseded", "withdrawn"]
+        },
+        "discovered_date": { "type": "string", "format": "date" },
+        "published_date": { "type": "string", "format": "date" },
+        "last_updated": { "type": "string", "format": "date" },
+        "superseded_by": { "type": "string", "pattern": "^AIVE-[0-9]{4}-[0-9]{5}$" },
+        "changelog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["date", "change"],
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "change": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "license", "review_status"],
+      "properties": {
+        "schema_version": { "type": "string", "const": "3.0.0" },
+        "license": { "type": "string", "enum": ["CC-BY-4.0"] },
+        "submission_type": { "type": "string", "enum": ["manual", "automated_ingest", "partner_feed"] },
+        "review_status": {
+          "type": "string",
+          "enum": ["unreviewed", "machine_triaged", "human_reviewed", "vendor_confirmed"],
+          "description": "Highest level of review reached. Machine triage never counts as validation."
+        },
+        "reviewed_by": { "type": "array", "items": { "type": "string" } },
+        "last_reviewed": { "type": "string", "format": "date" },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 of the canonical record body, for deduplication and integrity."
+        }
+      }
+    }
+  }
+}
