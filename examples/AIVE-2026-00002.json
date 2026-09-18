@@ -1,0 +1,148 @@
+{
+  "aive_id": "AIVE-2026-00002",
+  "title": "Delegation-chain abuse expands a child agent's authority beyond the approved task",
+  "summary": "A delegated agent receives broader tool or resource access than its parent task permits, allowing an out-of-scope action through a shared credential or an unchecked delegation hop.",
+  "description": "Illustrative draft pattern: an operator authorizes a bounded task and a parent agent delegates part of that task to a child. If the delegation mechanism provides an ambient service credential, drops the parent restrictions, or lets the child mint broader authority, the child can reach tools or resources outside the original approval. Checking the parent's plan alone does not constrain the child's effective permissions. The reusable failure is expansion of authority across a delegation boundary. This record does not claim a tested exploit, a real incident or an affected named product.",
+  "vulnerability_type": [
+    "delegation_abuse",
+    "privilege_escalation",
+    "scope_violation"
+  ],
+  "attack_vector": [
+    "inter_agent_message",
+    "configuration"
+  ],
+  "control_layer": [
+    "tools",
+    "environment",
+    "safeguards",
+    "monitoring"
+  ],
+  "affected_components": {
+    "component_class": [
+      "orchestration_framework",
+      "agent_harness",
+      "identity_provider",
+      "policy_engine",
+      "gateway_or_proxy"
+    ],
+    "deployment_context": [
+      "multi_agent",
+      "autonomous_agent"
+    ]
+  },
+  "agent_context": {
+    "tools_involved": [
+      "delegate_task",
+      "credential_issue",
+      "file_read",
+      "file_write"
+    ],
+    "permissions_required": [
+      "Ability to invoke delegation",
+      "A delegated credential or tool path whose effective scope exceeds the parent task"
+    ],
+    "delegation_depth": 1,
+    "identity_model": "shared_credential",
+    "human_in_loop": "approval_required",
+    "boundary_crossed": [
+      "identity",
+      "policy",
+      "tool_scope",
+      "data"
+    ]
+  },
+  "impact": {
+    "consequences": [
+      "confidentiality",
+      "integrity",
+      "unauthorized_action"
+    ]
+  },
+  "exploitability": {
+    "exploit_status": "theoretical",
+    "required_privileges": "user",
+    "user_interaction": "required",
+    "reproduction": {
+      "steps": [
+        "Use an isolated test harness with synthetic files in two test resource scopes. Authorize the parent task to read only scope A; give it no write access or access to scope B.",
+        "Have the parent delegate a permitted read operation to a child. Record the parent task ID, approval ID, child identity and effective delegated permissions.",
+        "Through the test harness, request a harmless write to a disposable canary file or a read of a synthetic canary in scope B using the child's effective authority.",
+        "Confirm that the out-of-scope operation is denied at the enforcement point. A permitted read in scope A should still succeed.",
+        "Repeat through a second child and after the parent authority is revoked or expires. Every descendant action must remain within the original scope and stop when its authority is no longer valid."
+      ],
+      "disclosure_status": "public"
+    }
+  },
+  "detection": {
+    "indicators": [
+      "A child's effective permissions include an action or resource absent from the parent authorization",
+      "A delegated action has no resolvable parent task or approval identifier",
+      "A descendant continues to act after the parent authorization is revoked or expires",
+      "A delegated action uses an ambient credential that bypasses the task-bound enforcement point"
+    ],
+    "log_sources": [
+      "agent_trace",
+      "tool_call_log",
+      "identity_provider",
+      "policy_decision_log",
+      "approval_events"
+    ]
+  },
+  "mitigation": {
+    "required_outcome": "Every descendant action is a subset of the authority granted to the original task and remains bound to that task's approval, resource limits and validity period.",
+    "minimum_control": "Enforce scope attenuation outside the model at each delegation hop and at tool execution. Bind child authority to a verifiable parent task and approval, deny ambient-credential bypasses, and propagate revocation or expiry before further descendant actions are allowed.",
+    "acceptable_alternatives": [
+      "Keep credentials exclusively in a central gateway that authorizes every child action against the original task's limits and current approval state.",
+      "Disable delegated execution and require the approved parent enforcement path to execute all permitted tool actions."
+    ],
+    "verification_method": "Run the synthetic scope-A/scope-B test for one and two delegation hops, then test parent revocation and expiry. Out-of-scope and no-longer-authorized operations must fail and produce a policy decision linked to the parent task; permitted control operations must succeed.",
+    "remediation_complexity": "medium",
+    "temporary_workaround": "Disable delegation for tasks using shared or unrestricted service credentials."
+  },
+  "taxonomy_mapping": {},
+  "attribution": {
+    "reported_by": [
+      {
+        "name": "Salah Khan",
+        "affiliation": "SALAI"
+      }
+    ],
+    "source_incidents": []
+  },
+  "lifecycle": {
+    "status": "draft",
+    "last_updated": "2026-09-18",
+    "changelog": [
+      {
+        "date": "2026-09-18",
+        "change": "Initial illustrative delegation-chain draft for maintainer review; no test execution or external validation claimed."
+      }
+    ]
+  },
+  "tags": [
+    "agentic",
+    "delegation",
+    "least-privilege",
+    "authorization",
+    "scope-attenuation"
+  ],
+  "metadata": {
+    "schema_version": "3.0.0",
+    "license": "CC-BY-4.0",
+    "submission_type": "manual",
+    "review_status": "unreviewed"
+  },
+  "references": [
+    {
+      "url": "https://github.com/OpenSecureAIAlliance/RFCs/issues/29",
+      "type": "discussion",
+      "title": "Related discussion of delegated-authority provenance; context, not incident evidence"
+    },
+    {
+      "url": "https://shazleekhan-salai-8i.static.hf.space/index.html",
+      "type": "other",
+      "title": "SALAI-8I: authority only shrinks"
+    }
+  ]
+}
