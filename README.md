@@ -62,7 +62,7 @@ Drafts carry `last_updated` and omit `published_date`. A non-draft record requir
 
 Published by [SALAI](https://github.com/salai-security). Maintainer: Salah Khan (SALAI).
 
-Use repository issues for public format questions and contribution proposals. The project-domain contact address will be added when configured. Do not put confidential vulnerability reports or assessment responses in a public issue.
+Contact: [contact@aive-db.org](mailto:contact@aive-db.org). Use repository issues for public format questions and contribution proposals. Do not put confidential vulnerability reports or assessment responses in a public issue.
 
 ## License
 
